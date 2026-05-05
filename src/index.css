@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@theme {
+  --font-dm-sans: "DM Sans", sans-serif;
+  --font-dm-mono: "DM Mono", monospace;
+  --font-syne: "Syne", sans-serif;
+}
+
+:root {
+  --blue: #1B4FCC;
+  --white: #FFFFFF;
+  --page-bg: #F4F6FB;
+  --text: #0D1B4B;
+  --muted: #8492B4;
+  --grey: #E2E6EF;
+  --grey-light: #F0F2F8;
+  --blue-hover: #EEF3FF;
+
+  --c-all: #64748B;
+  --c-employer: #1B4FCC;
+  --c-talent: #7C3AED;
+  --c-mentor: #0891B2;
+  --c-licensing: #059669;
+  --c-mixed: #9333EA;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--text);
+  font-family: var(--font-dm-sans);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Custom styles that are harder to replicate with pure tailwind or need specific grouping */
+.week-progress-ring svg {
+  transform: rotate(-90deg);
+}
+
+.ring-fill {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.week-card {
+  animation: fadeUp 0.35s ease both;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--page-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--grey);
+  border-radius: 3px;
+}
