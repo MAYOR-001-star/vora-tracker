@@ -1,25 +1,95 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { WEEKS } from './data/weeks'
+import { supabase } from './lib/supabase'
 
 const STATE_KEY = 'vora_timeline_v1'
 
 const App = () => {
   // State
-  const [checkedItems, setCheckedItems] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STATE_KEY)
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
+  const [checkedItems, setCheckedItems] = useState({})
   const [username, setUsername] = useState(() => localStorage.getItem('vora_username') || '')
   const [activeFilter, setActiveFilter] = useState('all')
   const [openWeeks, setOpenWeeks] = useState(new Set([1])) // Start with Week 1 open
   const [showModal, setShowModal] = useState(!localStorage.getItem('vora_username'))
+  const [activities, setActivities] = useState([])
+  const [showActivity, setShowActivity] = useState(false)
 
-  // Persistence
+  // Persistence & Sync
   useEffect(() => {
+    const fetchData = async () => {
+      // Fetch Progress
+      const { data: progressData, error: progressError } = await supabase
+        .from('progress')
+        .select('item_key, username')
+      
+      if (progressError) {
+        console.error('Error fetching progress:', progressError)
+      } else if (progressData) {
+        const items = {}
+        progressData.forEach(item => {
+          items[item.item_key] = item.username
+        })
+        setCheckedItems(items)
+      }
+
+      // Fetch Recent Activity
+      const { data: activityData, error: activityError } = await supabase
+        .from('activity_log')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20)
+      
+      if (activityError) {
+        console.error('Error fetching activities:', activityError)
+      } else if (activityData) {
+        setActivities(activityData)
+      }
+    }
+
+    fetchData()
+
+    // Realtime subscription
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'progress' },
+        (payload) => {
+          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+            setCheckedItems(prev => ({
+              ...prev,
+              [payload.new.item_key]: payload.new.username
+            }))
+          } else if (payload.eventType === 'DELETE') {
+            const deletedKey = payload.old.item_key
+            if (deletedKey) {
+              setCheckedItems(prev => {
+                const next = { ...prev }
+                delete next[deletedKey]
+                return next
+              })
+            } else {
+              fetchData()
+            }
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'activity_log' },
+        (payload) => {
+          setActivities(prev => [payload.new, ...prev].slice(0, 20))
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
+  useEffect(() => {
+    // Keep local storage in sync as a backup
     localStorage.setItem(STATE_KEY, JSON.stringify(checkedItems))
   }, [checkedItems])
 
@@ -33,17 +103,43 @@ const App = () => {
   const getItemKey = (wk, tab, section, idx) => `w${wk}_${tab}_${section}_${idx}`
 
   // Toggle Checkbox
-  const toggleItem = (wk, tab, section, idx) => {
+  const toggleItem = async (wk, tab, section, idx, label) => {
     const key = getItemKey(wk, tab, section, idx)
+    const isChecked = !!checkedItems[key]
+    const user = username || 'Anonymous'
+
+    // Optimistic UI update
     setCheckedItems(prev => {
       const next = { ...prev }
-      if (next[key]) {
+      if (isChecked) {
         delete next[key]
       } else {
-        next[key] = username || 'Anonymous'
+        next[key] = user
       }
       return next
     })
+
+    if (isChecked) {
+      await Promise.all([
+        supabase.from('progress').delete().eq('item_key', key),
+        supabase.from('activity_log').insert({ 
+          item_key: key, 
+          item_label: label, 
+          username: user, 
+          action: 'uncheck' 
+        })
+      ])
+    } else {
+      await Promise.all([
+        supabase.from('progress').upsert({ item_key: key, username: user }, { onConflict: 'item_key' }),
+        supabase.from('activity_log').insert({ 
+          item_key: key, 
+          item_label: label, 
+          username: user, 
+          action: 'check' 
+        })
+      ])
+    }
   }
 
   const handleSetUsername = (name) => {
@@ -52,9 +148,17 @@ const App = () => {
   }
 
   // Reset All
-  const resetAll = () => {
-    if (window.confirm('Reset all checked items?')) {
+  const resetAll = async () => {
+    if (window.confirm('Reset all checked items for the entire team? This cannot be undone.')) {
       setCheckedItems({})
+      await Promise.all([
+        supabase.from('progress').delete().neq('username', '_NOT_A_REAL_USERNAME_'),
+        supabase.from('activity_log').insert({ 
+          username: username || 'Anonymous', 
+          action: 'reset',
+          item_label: 'All Items'
+        })
+      ])
     }
   }
 
@@ -104,16 +208,24 @@ const App = () => {
   })
 
   return (
-    <div className="min-h-screen bg-[#F4F6FB] text-[#0D1B4B] font-sans selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#F4F6FB] text-[#0D1B4B] font-sans selection:bg-blue-500/30 overflow-x-hidden">
       {showModal && <UsernameModal onSetUsername={handleSetUsername} />}
       <Header 
         progressText={`${stats.completedTasks} / ${stats.totalTasks} tasks done`} 
         onReset={resetAll} 
         username={username}
         onEditUser={() => setShowModal(true)}
+        toggleActivity={() => setShowActivity(!showActivity)}
+        activityCount={activities.length}
       />
       
-      <main className="max-w-[1200px] mx-auto px-4 sm:px-8">
+      <main className="max-w-[1200px] mx-auto px-4 sm:px-8 relative">
+        <ActivityFeed 
+          isOpen={showActivity} 
+          activities={activities} 
+          onClose={() => setShowActivity(false)} 
+        />
+        
         <Hero activeFilter={activeFilter} setActiveFilter={setActiveFilter} />
         
         <StatsBar stats={stats} />
@@ -140,12 +252,21 @@ const App = () => {
   )
 }
 
-const Header = ({ progressText, onReset, username, onEditUser }) => (
+const Header = ({ progressText, onReset, username, onEditUser, toggleActivity, activityCount }) => (
   <header className="sticky top-0 z-50 bg-white border-b border-[#E2E6EF] px-4 sm:px-8 h-14 flex items-center justify-between shadow-sm">
     <div className="font-syne font-extrabold text-base sm:text-lg tracking-widest text-[#1B4FCC] whitespace-nowrap">
       VORA <span className="hidden sm:inline ml-2 text-[#8492B4] font-normal text-[0.7rem] tracking-tight">Health Talent OS · 12-Week Delivery</span>
     </div>
     <div className="flex items-center gap-3">
+      <button 
+        onClick={toggleActivity}
+        className="relative p-2 text-[#8492B4] hover:text-[#1B4FCC] transition-colors"
+      >
+        <span className="text-xl">🔔</span>
+        {activityCount > 0 && (
+          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+        )}
+      </button>
       <button 
         onClick={onEditUser}
         className="hidden md:flex items-center gap-2 px-3 py-1 bg-[#F0F2F8] hover:bg-[#E2E6EF] rounded-full transition-colors group"
@@ -377,7 +498,7 @@ const Checklist = ({ week, tab, data, checkedItems, onToggle, color }) => (
               <div 
                 key={idx} 
                 className={`flex items-start gap-3 p-1.5 rounded-lg cursor-pointer hover:bg-[#F0F2F8] transition-all`}
-                onClick={() => onToggle(week, tab, section, idx)}
+                onClick={() => onToggle(week, tab, section, idx, text)}
               >
                 <div 
                   className={`w-[16px] h-[16px] border-2 rounded-[4px] flex-shrink-0 mt-0.5 flex items-center justify-center transition-all ${done ? 'text-white' : ''}`}
@@ -447,5 +568,42 @@ const UsernameModal = ({ onSetUsername }) => {
     </div>
   )
 }
+
+const ActivityFeed = ({ isOpen, activities, onClose }) => (
+  <aside className={`fixed top-14 right-0 bottom-0 w-80 bg-white border-l border-[#E2E6EF] z-40 transition-transform duration-300 transform ${isOpen ? 'translate-x-0' : 'translate-x-full'} shadow-2xl`}>
+    <div className="p-6 h-full flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-syne font-extrabold text-lg text-[#0D1B4B]">Recent Activity</h2>
+        <button onClick={onClose} className="text-[#8492B4] hover:text-[#0D1B4B]">✕</button>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        {activities.length === 0 ? (
+          <div className="text-center py-10">
+            <div className="text-3xl mb-2">📜</div>
+            <p className="text-[#8492B4] text-xs font-dm-mono">No activity yet</p>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {activities.map((act) => (
+              <div key={act.id} className="border-l-2 border-[#1B4FCC] pl-4 py-1">
+                <div className="font-dm-mono text-[0.65rem] text-[#1B4FCC] font-bold uppercase mb-1">
+                  {act.username}
+                </div>
+                <div className="text-sm text-[#0D1B4B] leading-snug">
+                  {act.action === 'check' ? '✅ checked' : act.action === 'uncheck' ? '⭕ unchecked' : '🔄 reset'} 
+                  <span className="font-bold ml-1">{act.item_label}</span>
+                </div>
+                <div className="font-dm-mono text-[0.55rem] text-[#8492B4] mt-1">
+                  {new Date(act.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </aside>
+)
 
 export default App
