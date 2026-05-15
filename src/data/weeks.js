@@ -14,7 +14,6 @@ export const WEEKS = [
       "Employer Onboarding": [
         "Org name, org type, country of incorporation",
         "LMIC status auto-detected + displayed for confirmation",
-        "Billing info capture",
         "Employer dashboard (home screen)",
       ],
       "Talent Onboarding": [
@@ -28,9 +27,8 @@ export const WEEKS = [
         "Full name, professional title, current/most recent org",
         "Primary health sub-field",
         "Years of active professional experience",
-        "Brief expertise statement (free text)",
         "Supporting evidence links (LinkedIn, Google Scholar/PubMed, reg number, website)",
-        "Criterion 1 vs Criterion 2 selector",
+        "Course 1 vs Course 2 selector",
         "'Application submitted — complete your profile next' confirmation screen",
       ],
     },
@@ -47,7 +45,7 @@ export const WEEKS = [
         "Employer schema: org profile, country, LMIC auto-classifier (World Bank lookup)",
         "Talent schema: all onboarding fields + work-auth fields",
         "Fraud-flag event log on work-auth declarations",
-        "Mentor initial application schema: Criterion 1/2 flag, evidence links, status=pending",
+        "Mentor initial application schema: Course 1/2 flag, evidence links, status=pending",
       ],
       "Infrastructure": [
         "Role-based session routing middleware",
@@ -62,7 +60,7 @@ export const WEEKS = [
       {label:"POST /employers", type:"post"},{label:"POST /talent-profiles", type:"post"},
       {label:"POST /mentor-applications", type:"post"},
     ],
-    criteria:[
+    courses:[
       "All 3 user types can sign up + complete onboarding end-to-end",
       "OTP email delivers and verifies correctly",
       "Google + Apple OAuth both functional",
@@ -143,7 +141,7 @@ export const WEEKS = [
       {label:"GET /taxonomy/skills", type:"get"},{label:"GET /taxonomy/tools", type:"get"},
       {label:"PATCH /roles/:id", type:"post"},
     ],
-    criteria:[
+    courses:[
       "All Step 1–3 fields save and persist correctly",
       "JD extraction pre-fills fields across all 3 steps",
       "City-level location mandatory — country-only entry blocked",
@@ -225,7 +223,7 @@ export const WEEKS = [
       {label:"POST /roles/:id/vault-schedule", type:"post"},{label:"GET /roles/:id/vault-count", type:"get"},
       {label:"GET /roles/:id/link", type:"get"},
     ],
-    criteria:[
+    courses:[
       "All 6 steps complete end-to-end without data loss",
       "Correct fee applied: LMIC vs non-LMIC rates",
       "Gig roles use total contract value (no annualised calculation)",
@@ -305,7 +303,7 @@ export const WEEKS = [
       {label:"POST /matching/score", type:"post"},{label:"GET /candidates/:id/lock-status", type:"get"},
       {label:"POST /talent-pool/add", type:"post"},{label:"GET /roles/:id/link/status", type:"get"},
     ],
-    criteria:[
+    courses:[
       "Public landing page loads without auth — full JD visible",
       "New user flow: role context pre-loaded and visible throughout sign-up",
       "Returning user: no re-onboarding, existing data fully preserved",
@@ -400,7 +398,7 @@ export const WEEKS = [
       {label:"POST /assessments/:id/video-upload", type:"post"},
       {label:"POST /candidates/:id/lock", type:"post"},{label:"GET /assessments/:id/diagnosis", type:"get"},
     ],
-    criteria:[
+    courses:[
       "Assessment generated from all 4 inputs (3 always + 1 conditional when present)",
       "No two candidates receive the same questions, scenarios, or prompts",
       "Pre-assess docs feed into questions across ≥2 assessment components",
@@ -472,7 +470,7 @@ export const WEEKS = [
       {label:"GET /assessments/:id/report", type:"get"},{label:"POST /candidates/:id/profile-reset", type:"post"},
       {label:"GET /candidates/:id/development-prescription", type:"get"},{label:"GET /video-eval/queue", type:"get"},
     ],
-    criteria:[
+    courses:[
       "Employer report generated on candidate pass",
       "Report shows component scores + sub-dimensions — specific questions hidden",
       "Material-vs-response gap flag surfaced correctly in report",
@@ -520,12 +518,12 @@ export const WEEKS = [
     },
     be: {
       "Automated Eligibility Review": [
-        "Criterion 1: ≥8 years active paid experience in recognised health field",
-        "Criterion 1: seniority consistent with evidence (title, institution, publications)",
-        "Criterion 2: active professional registration — checked against public DBs where available",
-        "Criterion 2: evidence of active practice/consultations",
-        "Criterion 2: publication record (Scholar/PubMed lookup)",
-        "Criterion 2: evidence of external recognition (citations, grants, endorsements)",
+        "Course 1: ≥8 years active paid experience in recognised health field",
+        "Course 1: seniority consistent with evidence (title, institution, publications)",
+        "Course 2: active professional registration — checked against public DBs where available",
+        "Course 2: evidence of active practice/consultations",
+        "Course 2: publication record (Scholar/PubMed lookup)",
+        "Course 2: evidence of external recognition (citations, grants, endorsements)",
         "Review outcomes: Approved / Rejected / Requires Human Review",
         "Human review queue: 72h SLA enforced with escalation alerts",
       ],
@@ -549,9 +547,9 @@ export const WEEKS = [
       {label:"GET /ppp/rates/:country", type:"get"},{label:"POST /mentors/:id/approve", type:"post"},
       {label:"POST /mentors/:id/reject", type:"post"},
     ],
-    criteria:[
+    courses:[
       "Review runs only after full onboarding is complete",
-      "Both Criterion 1 and Criterion 2 properly evaluated",
+      "Both Course 1 and Course 2 properly evaluated",
       "Approved → profile live same day as approval",
       "Rejected → 1-month bar enforced at account level",
       "New account circumvention detected and blocked",
@@ -630,7 +628,7 @@ export const WEEKS = [
       {label:"POST /certificates/issue", type:"post"},{label:"GET /gap-signals?discipline=:d", type:"get"},
       {label:"POST /mentors/:id/pin-signal", type:"post"},
     ],
-    criteria:[
+    courses:[
       "Sessions bookable with correct PPP tier-adjusted rate for mentee",
       "4-signal tier assignment works; conflict defaults to higher tier",
       "VPN detection active and flagging correctly",
@@ -716,7 +714,7 @@ export const WEEKS = [
       {label:"POST /hires/:id/checkins", type:"post"},{label:"GET /hires/:id/performance-report", type:"get"},
       {label:"GET /offer-templates", type:"get"},
     ],
-    criteria:[
+    courses:[
       "APP-code anonymisation holds until hire confirmed",
       "True-up fires within 24h automatically",
       "Non-salaried templates suppress inapplicable fields",
@@ -742,7 +740,7 @@ export const WEEKS = [
       "Solo Practitioner Self-Serve Onboarding": [
         "Licence account creation",
         "Eligibility verification submission (active registration + practice evidence)",
-        "Supporting evidence upload (same Criterion 1/2 framework)",
+        "Supporting evidence upload (same Course 1/2 framework)",
         "48h automated eligibility determination screen",
         "On approval: branded profile config (own name, domain, colours, logo)",
         "Session types + pricing setup",
@@ -764,7 +762,7 @@ export const WEEKS = [
     be: {
       "Licence Schema + Eligibility": [
         "Solo practitioner licence schema + account creation",
-        "Eligibility review (48h automated — same Criterion 1/2 engine as VORA mentors)",
+        "Eligibility review (48h automated — same Course 1/2 engine as VORA mentors)",
         "Minimum standards floor: active professional registration required",
         "Minimum standards floor: evidence of active clinical/specialist practice required",
         "Floor cannot be set below VORA minimum under any configuration",
@@ -798,7 +796,7 @@ export const WEEKS = [
       {label:"POST /licenses/solo/:id/setup", type:"post"},{label:"POST /licenses/domain-map", type:"post"},
       {label:"GET /licenses/:id/billing", type:"get"},{label:"POST /licenses/:id/payout", type:"post"},
     ],
-    criteria:[
+    courses:[
       "Solo practitioner 48h eligibility review functional",
       "Platform setup completable same day as approval",
       "Branded deployment fully hides VORA branding (unless opted in)",
@@ -886,7 +884,7 @@ export const WEEKS = [
       {label:"POST /licenses/revenue-share/calculate", type:"post"},{label:"POST /licenses/revenue-share/remit", type:"post"},
       {label:"GET /licenses/:id/data-export", type:"get"},
     ],
-    criteria:[
+    courses:[
       "Institutional tier assigned by operating market (not legal registration country alone)",
       "Revenue share calculated correctly: T1 30% / T2 20% / T3 12%",
       "Minimum eligibility floor enforced at infrastructure level — cannot be disabled",
@@ -976,7 +974,7 @@ export const WEEKS = [
       {label:"GET /curriculum/:id/export/pptx", type:"get"},{label:"GET /curriculum/:id/export/link", type:"get"},
       {label:"GET /employer/wallet", type:"get"},
     ],
-    criteria:[
+    courses:[
       "Payouts process across all 4 methods (Flutterwave, Paystack, Stripe, SWIFT)",
       "8%/92% split calculated correctly on every transaction",
       "Auto-payout fires at month-end",

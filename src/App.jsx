@@ -440,7 +440,7 @@ const WeekCard = ({ week, checkedItems, toggleItem, isOpen, toggleOpen }) => {
             <TabBtn active={activeTab === 'fe'} label="Frontend" onClick={() => setActiveTab('fe')} />
             <TabBtn active={activeTab === 'be'} label="Backend" onClick={() => setActiveTab('be')} />
             <TabBtn active={activeTab === 'screens'} label="Screens & APIs" onClick={() => setActiveTab('screens')} />
-            <TabBtn active={activeTab === 'criteria'} label="Success Criteria" onClick={() => setActiveTab('criteria')} />
+            <TabBtn active={activeTab === 'courses'} label="Success Courses" onClick={() => setActiveTab('courses')} />
           </div>
 
           {activeTab === 'fe' && <Checklist week={week.n} tab="fe" data={week.fe} checkedItems={checkedItems} onToggle={toggleItem} color={color} />}
@@ -457,11 +457,11 @@ const WeekCard = ({ week, checkedItems, toggleItem, isOpen, toggleOpen }) => {
               </div>
             </div>
           )}
-          {activeTab === 'criteria' && (
+          {activeTab === 'courses' && (
             <div>
               <SectionLabel label="Definition of Done" />
               <div className="flex flex-col gap-1 mt-2">
-                {week.criteria.map((c, i) => (
+                {week.courses.map((c, i) => (
                   <div key={i} className="flex gap-2 text-[0.8rem]">
                     <span className="text-[#1B4FCC] text-[0.68rem] mt-1">◆</span>
                     <span>{c}</span>
